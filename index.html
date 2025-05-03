@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sensor Data Dashboard Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap');
+  body {
+    margin: 0; padding: 0; font-family: 'Raleway', sans-serif;
+    background: #121212;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    background: #1f1f1f;
+    padding: 1rem 2rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.75rem;
+    letter-spacing: 1.2px;
+    color: #d4af37;
+  }
+  main {
+    flex: 1;
+    padding: 1rem 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  .sensor-card {
+    background: #282828;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgb(212 175 55 / 0.5);
+    padding: 1rem 1.25rem;
+    flex: 1 1 280px;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+  }
+  .sensor-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #d4af37;
+    margin-bottom: .25rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .sensor-value {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+  }
+  .sensor-unit {
+    font-size: 1.25rem;
+    color: #aaa;
+    margin-bottom: 1rem;
+  }
+  .btn-group {
+    margin-top: auto;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    background: #d4af37;
+    border: none;
+    border-radius: 6px;
+    color: #121212;
+    font-weight: 700;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  button:hover {
+    background: #c1992d;
+  }
+  canvas {
+    margin-top: 1rem;
+    border-radius: 8px;
+    background: #1f1f1f;
+  }
+  footer {
+    text-align: center;
+    padding: 1rem 1rem 1.5rem;
+    font-size: 0.9rem;
+    color: #777;
+  }
+  @media (max-width: 600px) {
+    main {
+      padding: 1rem;
+    }
+    .sensor-card {
+      max-width: 100%;
+    }
+    .sensor-value {
+      font-size: 2.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+<header>Sensor Data Dashboard Simulator</header>
+<main>
+  <section class="sensor-card" id="temp-sensor">
+    <div class="sensor-title">Temperature</div>
+    <div><span class="sensor-value" id="temp-value">22</span><span class="sensor-unit">°C</span></div>
+    <div class="btn-group">
+      <button onclick="updateSensor('temp', -1)">-</button>
+      <button onclick="updateSensor('temp', 1)">+</button>
+      <button onclick="randomizeSensor('temp', 15, 35)">Random</button>
+    </div>
+    <canvas id="temp-chart" width="280" height="80"></canvas>
+  </section>
+
+  <section class="sensor-card" id="humidity-sensor">
+    <div class="sensor-title">Humidity</div>
+    <div><span class="sensor-value" id="humidity-value">55</span><span class="sensor-unit">%</span></div>
+    <div class="btn-group">
+      <button onclick="updateSensor('humidity', -5)">-</button>
+      <button onclick="updateSensor('humidity', 5)">+</button>
+      <button onclick="randomizeSensor('humidity', 20, 80)">Random</button>
+    </div>
+    <canvas id="humidity-chart" width="280" height="80"></canvas>
+  </section>
+
+  <section class="sensor-card" id="light-sensor">
+    <div class="sensor-title">Light Intensity</div>
+    <div><span class="sensor-value" id="light-value">300</span><span class="sensor-unit"> lx</span></div>
+    <div class="btn-group">
+      <button onclick="updateSensor('light', -20)">-</button>
+      <button onclick="updateSensor('light', 20)">+</button>
+      <button onclick="randomizeSensor('light', 0, 1000)">Random</button>
+    </div>
+    <canvas id="light-chart" width="280" height="80"></canvas>
+  </section>
+
+  <section class="sensor-card" id="motion-sensor">
+    <div class="sensor-title">Motion Detector</div>
+    <div><span class="sensor-value" id="motion-value">No Motion</span></div>
+    <div class="btn-group">
+      <button onclick="toggleMotion()">Toggle Motion</button>
+    </div>
+    <canvas id="motion-chart" width="280" height="80"></canvas>
+  </section>
+</main>
+<footer>Made to showcase Sensor Skills - 100% Client Side & Responsive</footer>
+
+<script>
+  // Sensor data state
+  const sensors = {
+    temp: { value: 22, min: 0, max: 45, history: [] },
+    humidity: { value: 55, min: 0, max: 100, history: [] },
+    light: { value: 300, min: 0, max: 1000, history: [] },
+    motion: { value: false, history: [] }
+  };
+
+  // Update sensor value by delta or clamp
+  function updateSensor(sensor, delta) {
+    if (sensor === 'motion') return; // handled differently
+    let s = sensors[sensor];
+    s.value += delta;
+    if(s.value < s.min) s.value = s.min;
+    if(s.value > s.max) s.value = s.max;
+    updateDisplay(sensor);
+  }
+
+  // Set sensor to random value between min and max
+  function randomizeSensor(sensor, min, max) {
+    let val = Math.round(Math.random() * (max - min) + min);
+    sensors[sensor].value = val;
+    updateDisplay(sensor);
+  }
+
+  // Toggle motion boolean
+  function toggleMotion() {
+    sensors.motion.value = !sensors.motion.value;
+    updateDisplay('motion');
+  }
+
+  // Update displayed sensor readings and history
+  function updateDisplay(sensor) {
+    let sensorObj = sensors[sensor];
+    // Update value text
+    let displayVal = sensorObj.value;
+    if(sensor === "motion") {
+      document.getElementById('motion-value').textContent = displayVal ? "Motion Detected" : "No Motion";
+    } else {
+      document.getElementById(sensor + '-value').textContent = displayVal;
+    }
+    // Add value to history, keep last 30 data points
+    if(sensor !== 'motion') {
+      sensorObj.history.push(displayVal);
+      if(sensorObj.history.length > 30) sensorObj.history.shift();
+    } else {
+      // For motion, store 1 for true, 0 for false in history to plot
+      sensorObj.history.push(displayVal ? 1 : 0);
+      if(sensorObj.history.length > 30) sensorObj.history.shift();
+    }
+    drawChart(sensor);
+  }
+
+  // Draw simple line chart on canvas for sensor data
+  function drawChart(sensor) {
+    const canvas = document.getElementById(sensor + '-chart');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw bg grid lines
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    for(let y=10; y<h; y+=20){
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(w,y);
+      ctx.stroke();
+    }
+
+    // Draw data line
+    const history = sensors[sensor].history;
+    if(history.length < 2) return;
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let i=0; i<history.length; i++) {
+      const x = (i / 29) * (w - 10) + 5;
+      let val = history[i];
+      let y = h - ((val - sensors[sensor].min) / (sensors[sensor].max - sensors[sensor].min)) * (h - 20) - 10;
+      if(sensor === 'motion') {
+        // For motion on/off convert 1/0 to top/bottom line
+        y = val ? 20 : (h - 20);
+      }
+      if(i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Initialize all sensor values and charts
+  function init() {
+    ['temp', 'humidity', 'light', 'motion'].forEach(s => updateDisplay(s));
+  }
+  
+  init();
+</script>
+</body>
+</html>
